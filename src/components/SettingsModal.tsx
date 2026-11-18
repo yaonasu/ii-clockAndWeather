@@ -1,9 +1,9 @@
 import {RotateCcw, X} from 'lucide-react';
 import {useEffect, useState} from 'react';
-import {BUILTIN_CLOCK_TARGET, DEFAULT_SETTINGS, JAPAN_CITIES} from '../data/presets';
+import {DEFAULT_SETTINGS, JAPAN_CITIES} from '../data/presets';
 import {usePWAInstall} from '../hooks/usePWAInstall';
-import type {AppSettings, LauncherItem, LauncherMode} from '../types/app';
-import {validateAndNormalizeWebUrl, validateAppTarget} from '../utils/url';
+import type {AppSettings, LauncherItem} from '../types/app';
+import {validateAndNormalizeWebUrl} from '../utils/url';
 import {PWAInstallButton} from './PWAInstallButton';
 
 interface SettingsModalProps {
@@ -64,21 +64,6 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
     });
   };
 
-  const handleModeChange = (index: 0 | 1 | 2, mode: LauncherMode) => {
-    const current = draft.launchers[index];
-    let nextTarget = current.target;
-    if (mode === 'app' && current.target.trim().toLowerCase().startsWith('http')) {
-      nextTarget = BUILTIN_CLOCK_TARGET;
-    } else if (
-      mode === 'url' &&
-      (current.target.trim() === BUILTIN_CLOCK_TARGET ||
-        current.target.trim().toLowerCase() === 'clock-app')
-    ) {
-      nextTarget = 'https://';
-    }
-    updateLauncher(index, {mode, target: nextTarget});
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -88,22 +73,12 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
 
     for (const idx of [0, 1, 2] as const) {
       const item = draft.launchers[idx];
-      if (item.mode === 'url') {
-        const res = validateAndNormalizeWebUrl(item.target);
-        if (!res.ok) {
-          nextErrors[idx] = res.error;
-          hasError = true;
-        } else {
-          validatedTargets[idx] = res.url;
-        }
+      const res = validateAndNormalizeWebUrl(item.target);
+      if (!res.ok) {
+        nextErrors[idx] = res.error;
+        hasError = true;
       } else {
-        const res = validateAppTarget(item.target);
-        if (!res.ok) {
-          nextErrors[idx] = res.error;
-          hasError = true;
-        } else {
-          validatedTargets[idx] = res.target;
-        }
+        validatedTargets[idx] = res.url;
       }
     }
 
@@ -114,17 +89,17 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
 
     const cleanedLaunchers: [LauncherItem, LauncherItem, LauncherItem] = [
       {
-        ...draft.launchers[0],
+        id: draft.launchers[0].id,
         label: draft.launchers[0].label.trim() || DEFAULT_SETTINGS.launchers[0].label,
         target: validatedTargets[0],
       },
       {
-        ...draft.launchers[1],
+        id: draft.launchers[1].id,
         label: draft.launchers[1].label.trim() || DEFAULT_SETTINGS.launchers[1].label,
         target: validatedTargets[1],
       },
       {
-        ...draft.launchers[2],
+        id: draft.launchers[2].id,
         label: draft.launchers[2].label.trim() || DEFAULT_SETTINGS.launchers[2].label,
         target: validatedTargets[2],
       },
@@ -187,10 +162,10 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
               </select>
             </section>
 
-            {/* 3 Launcher items */}
+            {/* 3 Launcher items (Web URL only) */}
             <section className="space-y-3">
               <h3 className="text-sm font-medium text-purple-100">
-                ランチャーボタン設定（3つ）
+                ランチャーボタン設定（3つ・Web URL専用）
               </h3>
 
               <div className="space-y-3">
@@ -206,30 +181,6 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
                         <span className="text-xs font-semibold text-purple-300">
                           ボタン {idx + 1}
                         </span>
-                        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[#1A132B] border border-purple-300/10">
-                          <button
-                            type="button"
-                            onClick={() => handleModeChange(idx, 'app')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                              item.mode === 'app'
-                                ? 'bg-purple-700 text-white'
-                                : 'text-slate-400 hover:text-slate-100'
-                            }`}
-                          >
-                            アプリ起動
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleModeChange(idx, 'url')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                              item.mode === 'url'
-                                ? 'bg-purple-700 text-white'
-                                : 'text-slate-400 hover:text-slate-100'
-                            }`}
-                          >
-                            URL（ブラウザ）
-                          </button>
-                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -246,40 +197,25 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
                             value={item.label}
                             maxLength={20}
                             onChange={(e) => updateLauncher(idx, {label: e.target.value})}
-                            placeholder="例: 時計"
+                            placeholder="例: Gmail"
                             className="w-full min-h-[44px] rounded-lg bg-[#151021] border border-purple-300/15 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
                           />
                         </div>
 
                         <div className="sm:col-span-2">
-                          <div className="flex items-center justify-between mb-1">
-                            <label
-                              htmlFor={`launcher-target-${idx}`}
-                              className="block text-xs text-slate-400"
-                            >
-                              {item.mode === 'app' ? 'アプリ指定（アプリ名 / スキーム）' : 'URL（http / https）'}
-                            </label>
-                            {item.mode === 'app' && item.target !== BUILTIN_CLOCK_TARGET ? (
-                              <button
-                                type="button"
-                                onClick={() => updateLauncher(idx, {target: BUILTIN_CLOCK_TARGET})}
-                                className="text-[11px] text-purple-300 hover:text-purple-200 underline cursor-pointer"
-                              >
-                                時計アプリを設定
-                              </button>
-                            ) : null}
-                          </div>
+                          <label
+                            htmlFor={`launcher-target-${idx}`}
+                            className="block text-xs text-slate-400 mb-1"
+                          >
+                            Web URL（http / https）
+                          </label>
                           <input
                             id={`launcher-target-${idx}`}
-                            type="text"
-                            inputMode={item.mode === 'url' ? 'url' : 'text'}
+                            type="url"
+                            inputMode="url"
                             value={item.target}
                             onChange={(e) => updateLauncher(idx, {target: e.target.value})}
-                            placeholder={
-                              item.mode === 'app'
-                                ? '時計アプリ または カスタムURLスキーム'
-                                : 'https://example.com/'
-                            }
+                            placeholder="https://example.com/"
                             aria-invalid={!!targetError}
                             className={`w-full min-h-[44px] rounded-lg bg-[#151021] border px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:ring-2 ${
                               targetError

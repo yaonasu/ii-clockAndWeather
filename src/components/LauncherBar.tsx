@@ -1,19 +1,17 @@
-import {AppWindow, Calendar, Clock, CloudSun, ExternalLink} from 'lucide-react';
-import {BUILTIN_CLOCK_TARGET} from '../data/presets';
+import {Calendar, CloudSun, ExternalLink, Mail} from 'lucide-react';
 import type {LauncherItem} from '../types/app';
-import {validateAndNormalizeWebUrl, validateAppTarget} from '../utils/url';
+import {validateAndNormalizeWebUrl} from '../utils/url';
 
 interface LauncherBarProps {
   launchers: [LauncherItem, LauncherItem, LauncherItem];
-  onOpenClockApp: () => void;
   onExternalLaunch: () => void;
 }
 
 function getLauncherIcon(item: LauncherItem) {
   const lowerLabel = item.label.toLowerCase();
   const lowerTarget = item.target.toLowerCase();
-  if (item.mode === 'app' && (item.target === BUILTIN_CLOCK_TARGET || lowerTarget === 'clock-app')) {
-    return <Clock className="w-5 h-5 text-purple-300 shrink-0" aria-hidden="true" />;
+  if (lowerLabel.includes('gmail') || lowerLabel.includes('メール') || lowerTarget.includes('mail.google')) {
+    return <Mail className="w-5 h-5 text-rose-300 shrink-0" aria-hidden="true" />;
   }
   if (lowerLabel.includes('天気') || lowerTarget.includes('weather') || lowerTarget.includes('open-meteo')) {
     return <CloudSun className="w-5 h-5 text-amber-300 shrink-0" aria-hidden="true" />;
@@ -21,15 +19,11 @@ function getLauncherIcon(item: LauncherItem) {
   if (lowerLabel.includes('カレンダー') || lowerTarget.includes('calendar')) {
     return <Calendar className="w-5 h-5 text-emerald-400 shrink-0" aria-hidden="true" />;
   }
-  if (item.mode === 'app') {
-    return <AppWindow className="w-5 h-5 text-purple-300 shrink-0" aria-hidden="true" />;
-  }
   return <ExternalLink className="w-5 h-5 text-sky-300 shrink-0" aria-hidden="true" />;
 }
 
 export function LauncherBar({
   launchers,
-  onOpenClockApp,
   onExternalLaunch,
 }: LauncherBarProps) {
   return (
@@ -41,57 +35,6 @@ export function LauncherBar({
 
           const disabledClass =
             'min-h-[48px] sm:min-h-[54px] px-2.5 sm:px-3 py-2 rounded-xl bg-[#171126] border border-rose-400/20 opacity-60 flex items-center justify-center gap-2 cursor-not-allowed';
-
-          if (item.mode === 'app') {
-            const validatedApp = validateAppTarget(item.target);
-            if (!validatedApp.ok) {
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  disabled
-                  aria-disabled="true"
-                  title={validatedApp.error}
-                  className={disabledClass}
-                >
-                  {getLauncherIcon(item)}
-                  <span className="text-xs sm:text-sm font-medium text-slate-300 truncate">
-                    {item.label}
-                  </span>
-                </button>
-              );
-            }
-
-            if (validatedApp.isBuiltinClock) {
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={onOpenClockApp}
-                  className={`${commonClass} cursor-pointer`}
-                >
-                  {getLauncherIcon(item)}
-                  <span className="text-xs sm:text-sm font-medium text-slate-100 truncate">
-                    {item.label}
-                  </span>
-                </button>
-              );
-            }
-
-            return (
-              <a
-                key={item.id}
-                href={validatedApp.target}
-                onClick={onExternalLaunch}
-                className={commonClass}
-              >
-                {getLauncherIcon(item)}
-                <span className="text-xs sm:text-sm font-medium text-slate-100 truncate">
-                  {item.label}
-                </span>
-              </a>
-            );
-          }
 
           const validatedUrl = validateAndNormalizeWebUrl(item.target);
           if (!validatedUrl.ok) {

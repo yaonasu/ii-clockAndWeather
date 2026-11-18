@@ -18,7 +18,7 @@ export default defineConfig(({mode}) => {
         manifest: {
           id: base,
           name: 'ii-clockAndWeather',
-          short_name: 'ii-Clock',
+          short_name: 'ii-clockAndWeather',
           lang: 'ja',
           description: '茄子モチーフのアナログ置時計、24時間天気予報グラフ、ランチャーボタン3つを備えた常時表示PWAアプリ',
           theme_color: '#0B0812',

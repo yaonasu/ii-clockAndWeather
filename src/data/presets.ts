@@ -16,27 +16,22 @@ export const JAPAN_CITIES: CityPreset[] = [
   {id: 'naha', name: '那覇', region: '沖縄県', latitude: 26.2124, longitude: 127.6809},
 ];
 
-export const BUILTIN_CLOCK_TARGET = '時計アプリ';
-
 export const DEFAULT_SETTINGS: AppSettings = {
   cityId: 'tokyo',
   launchers: [
     {
       id: 'launcher-1',
-      label: '時計',
-      mode: 'app',
-      target: BUILTIN_CLOCK_TARGET,
+      label: 'Gmail',
+      target: 'https://mail.google.com/',
     },
     {
       id: 'launcher-2',
       label: '天気',
-      mode: 'url',
       target: 'https://open-meteo.com/',
     },
     {
       id: 'launcher-3',
       label: 'カレンダー',
-      mode: 'url',
       target: 'https://calendar.google.com/',
     },
   ],

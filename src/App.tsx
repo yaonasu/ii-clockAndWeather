@@ -1,7 +1,6 @@
 import {Settings} from 'lucide-react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {EggplantClock} from './components/EggplantClock';
-import {FullscreenClockModal} from './components/FullscreenClockModal';
 import {LauncherBar} from './components/LauncherBar';
 import {OfflineIndicator} from './components/OfflineIndicator';
 import {PWAInstallButton} from './components/PWAInstallButton';
@@ -20,7 +19,6 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [isSwapped, setIsSwapped] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [fullscreenClockOpen, setFullscreenClockOpen] = useState(false);
 
   const [weather, setWeather] = useState<WeatherData | null>(() =>
     loadCachedWeather(loadSettings().cityId),
@@ -171,7 +169,6 @@ export default function App() {
       />
       <LauncherBar
         launchers={settings.launchers}
-        onOpenClockApp={() => setFullscreenClockOpen(true)}
         onExternalLaunch={releaseForExternalApp}
       />
     </section>
@@ -217,11 +214,6 @@ export default function App() {
         settings={settings}
         onClose={() => setSettingsOpen(false)}
         onSave={handleSaveSettings}
-      />
-
-      <FullscreenClockModal
-        open={fullscreenClockOpen}
-        onClose={() => setFullscreenClockOpen(false)}
       />
 
       <OfflineIndicator />

@@ -1,9 +1,6 @@
-export type LauncherMode = 'app' | 'url';
-
 export interface LauncherItem {
   id: string;
   label: string;
-  mode: LauncherMode;
   target: string;
 }
 
