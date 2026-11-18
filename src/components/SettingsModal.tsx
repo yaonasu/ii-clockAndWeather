@@ -20,6 +20,11 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
     null,
     null,
   ]);
+  const [viewportBox, setViewportBox] = useState<{
+    top: number;
+    height: number;
+    compactBottom: boolean;
+  } | null>(null);
   const {isInstalled, isInstallable, isIOS} = usePWAInstall();
 
   useEffect(() => {
@@ -28,6 +33,51 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
       setTargetErrors([null, null, null]);
     }
   }, [open, settings]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+    const prevBodyOverscroll = document.body.style.overscrollBehavior;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
+    document.body.style.overscrollBehavior = 'none';
+
+    const vv = window.visualViewport;
+    if (!vv) {
+      return () => {
+        document.documentElement.style.overflow = prevHtmlOverflow;
+        document.body.style.overflow = prevBodyOverflow;
+        document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
+        document.body.style.overscrollBehavior = prevBodyOverscroll;
+      };
+    }
+
+    const updateViewport = () => {
+      setViewportBox({
+        top: Math.max(0, Math.round(vv.offsetTop)),
+        height: Math.round(vv.height),
+        compactBottom: vv.height < window.innerHeight * 0.8,
+      });
+    };
+
+    updateViewport();
+    vv.addEventListener('resize', updateViewport);
+    vv.addEventListener('scroll', updateViewport);
+
+    return () => {
+      vv.removeEventListener('resize', updateViewport);
+      vv.removeEventListener('scroll', updateViewport);
+      setViewportBox(null);
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
+      document.body.style.overscrollBehavior = prevBodyOverscroll;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -118,14 +168,25 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-3 sm:p-6"
+      className={`fixed inset-x-0 z-50 flex flex-col items-center overflow-hidden overscroll-none bg-black/75 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-[max(1.5rem,env(safe-area-inset-top))] pl-[max(0.75rem,env(safe-area-inset-left))] sm:pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:pr-[max(1.5rem,env(safe-area-inset-right))] ${
+        viewportBox ? '' : 'inset-y-0 h-dvh '
+      }${
+        viewportBox?.compactBottom
+          ? 'pb-2'
+          : 'pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]'
+      }`}
+      style={viewportBox ? {top: `${viewportBox.top}px`, height: `${viewportBox.height}px`} : undefined}
       role="dialog"
       aria-modal="true"
       aria-label="設定"
     >
-      <div className="w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl bg-[#151021] border border-purple-300/20 shadow-2xl overflow-hidden">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="my-auto w-full max-w-xl max-h-full min-h-0 grid grid-rows-[auto_minmax(0,1fr)_auto] rounded-2xl bg-[#151021] border border-purple-300/20 shadow-2xl overflow-hidden"
+      >
         {/* Modal header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-purple-300/12 shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b border-purple-300/12">
           <h2 className="text-base sm:text-lg font-semibold text-slate-50">設定</h2>
           <button
             type="button"
@@ -137,9 +198,8 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
           </button>
         </div>
 
-        {/* Modal form body */}
-        <form onSubmit={handleSubmit} noValidate className="flex flex-col flex-1 min-h-0">
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
+        {/* Scrollable modal form body */}
+        <div className="min-h-0 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 sm:px-5 py-3.5 sm:py-4 space-y-5">
             {/* Weather city preset */}
             <section className="space-y-2">
               <label
@@ -251,37 +311,36 @@ export function SettingsModal({open, settings, onClose, onSave}: SettingsModalPr
                 </p>
               </section>
             ) : null}
-          </div>
+        </div>
 
-          {/* Modal footer */}
-          <div className="flex items-center justify-between gap-2 px-5 py-3.5 border-t border-purple-300/12 bg-[#110C1B] shrink-0">
+        {/* Modal footer */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-t border-purple-300/12 bg-[#110C1B]">
+          <button
+            type="button"
+            onClick={handleReset}
+            className="min-h-[44px] px-3 py-2 rounded-xl text-xs sm:text-sm text-slate-300 hover:text-white hover:bg-purple-500/10 flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>初期値に戻す</span>
+          </button>
+
+          <div className="flex items-center gap-2 ml-auto">
             <button
               type="button"
-              onClick={handleReset}
-              className="min-h-[44px] px-3 py-2 rounded-xl text-xs sm:text-sm text-slate-300 hover:text-white hover:bg-purple-500/10 flex items-center gap-1.5 transition-colors cursor-pointer"
+              onClick={onClose}
+              className="min-h-[44px] px-4 py-2 rounded-xl border border-purple-300/20 text-sm font-medium text-slate-200 hover:bg-purple-500/10 transition-colors cursor-pointer"
             >
-              <RotateCcw className="w-4 h-4" />
-              <span>初期値に戻す</span>
+              キャンセル
             </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="min-h-[44px] px-4 py-2 rounded-xl border border-purple-300/20 text-sm font-medium text-slate-200 hover:bg-purple-500/10 transition-colors cursor-pointer"
-              >
-                キャンセル
-              </button>
-              <button
-                type="submit"
-                className="min-h-[44px] px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-600 text-sm font-semibold text-white transition-colors cursor-pointer"
-              >
-                保存
-              </button>
-            </div>
+            <button
+              type="submit"
+              className="min-h-[44px] px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-600 text-sm font-semibold text-white transition-colors cursor-pointer"
+            >
+              保存
+            </button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
